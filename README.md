@@ -1,19 +1,19 @@
 # DESeq2 Pipeline
 
-Pseudobulk + DESeq2 pipeline for single-cell perturbation screens. Takes an AnnData, splits cells into pseudobulk replicates per perturbation, runs DESeq2 against control, and returns differential expression results.
+Pseudobulk + DESeq2 pipeline for single-cell perturbation screens. It takes an AnnData (with raw counts, not log-transformed), splits cells into a user-specified number of pseudobulk replicates per perturbation, runs DESeq2 against control, and returns differential expression results.
 
 ---
 
-## Setup (run once)
+## Setup (only need to run once)
 
-Requires conda or mamba. No sudo needed — R and all dependencies install into the conda environment.
+Requires conda or mamba. No sudo needed. R and all dependencies install into the conda environment.
 
 ```bash
 bash setup.sh
 conda activate deseq2_pipeline
 ```
 
-That's it. `setup.sh` installs Python 3.11, R 4.3, and all required packages (DESeq2, glmGamPoi, etc.) as pre-built conda binaries — no compilation.
+This `setup.sh` installs Python 3.11, R 4.3, and all required packages (DESeq2, glmGamPoi, etc.) as pre-built conda binaries — no compilation.
 
 ---
 
@@ -22,6 +22,8 @@ That's it. `setup.sh` installs Python 3.11, R 4.3, and all required packages (DE
 ```bash
 pytest test_pipeline.py -v   # all 14 tests should pass
 ```
+
+To speed things up, the main script employs parallelization, both across pseudobulking and DESeq implementation. This `test_pipeline.py` tests whether parallelization matches sequential results.
 
 ---
 
@@ -39,7 +41,7 @@ python deseq2_pipeline.py \
     --n-workers-r 50
 ```
 
-Test on a subset first with `--n-sample 50`.
+Test on a subset first with `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time, and then accordingly experiment with `n-threads` and `n-workers`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
 
 ### Python API
 
@@ -54,29 +56,9 @@ results_path = run_pipeline(
     n_workers_r = 50,
 )
 
+# Optional: if you want to see the results
 import pandas as pd
 results = pd.read_csv(results_path)
-```
-
-### SLURM
-
-```bash
-#!/bin/bash
-#SBATCH --mem=300G
-#SBATCH --cpus-per-task=8
-#SBATCH --time=04:00:00
-#SBATCH --output=logs/%j.out
-#SBATCH --error=logs/%j.err
-
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate deseq2_pipeline
-
-python deseq2_pipeline.py \
-    --h5ad /path/to/data.h5ad \
-    --pert-col target_gene \
-    --ctrl-label non-targeting \
-    --n-threads 8 \
-    --n-workers-r 50
 ```
 
 ---
@@ -100,12 +82,13 @@ results/
 |---|---|
 | `gene` | Gene name |
 | `perturbation` | Perturbation name |
-| `baseMean` | Mean normalized counts |
+| `baseMean` | Mean normalized counts across all samples |
 | `log2FoldChange` | Log2 fold change (pert vs ctrl) |
-| `lfcSE` | Standard error of LFC |
+| `fold_change` | Linear fold change (2^log2FoldChange) |
+| `lfcSE` | Standard error of log2 fold change |
 | `stat` | Wald statistic |
 | `pvalue` | Nominal p-value |
-| `padj` | BH-adjusted p-value |
+| `fdr` | BH-adjusted p-value (Benjamini-Hochberg) |
 
 ---
 
@@ -133,7 +116,9 @@ python deseq2_pipeline.py \
 |---|---|---|
 | `--n-threads` | 4 | Pseudobulk parallelism. 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
 | `--n-workers-r` | 50 | Parallel R processes. Safe up to ~100 on a machine with 200GB RAM since adata is freed before R launches |
-| `--min-cells` | 10 | Perts with fewer cells are skipped and logged to `skipped_perts.csv` |
+| `--min-cells` | 10 | Perts with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
 | `--n-sample` | None | Subsample N random perts. Useful for quick tests before running all perts |
 | `--random-seed` | 42 | Controls pseudobulk cell sampling. Fix this to reproduce results exactly |
 | `--chunk-size` | 500 | Rows per chunk in sparse row sum. Keep at 500 — lower values avoid RSS spikes on systems with tight memory limits |
+| `--n-reps` | 2 | Number of pseudobulk replicates per perturbation. Each replicate uses `rep-frac` of the pert's cells. Total cells used = `n-reps * rep-frac`|
+| `--rep-frac` | 0.5 | Fraction of each pert's cells used per replicate. Default 0.5 means each replicate uses 50% of cells. Must satisfy `n-reps * rep-frac ≤ 1.0` — e.g. 3 replicates requires `rep-frac ≤ 0.33` |
