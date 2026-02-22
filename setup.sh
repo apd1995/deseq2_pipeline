@@ -101,12 +101,15 @@ success "Conda cache cleaned"
 info "Installing Python + R + all R packages via conda (pre-built binaries)..."
 info "This avoids all compilation issues. May take 10-20 min on first run..."
 
+# Step 1: install Python packages + R 4.5.2 + C compiler tools via conda
+# R 4.5.2 matches ds_env for performance
+# compilers package provides gcc/g++ needed for pak to build R packages from source
+# Bioconductor packages installed separately in R since conda-forge
+# does not yet have versions compatible with R 4.5.2
 $CONDA_CMD install -n "$ENV_NAME" \
     -c conda-forge \
-    -c bioconda \
     --no-update-deps \
     -y \
-    \
     python=3.11 \
     pip \
     numpy \
@@ -116,29 +119,11 @@ $CONDA_CMD install -n "$ENV_NAME" \
     h5py \
     psutil \
     pytest \
-    \
-    r-base=4.3 \
-    r-data.table \
-    r-r.utils \
-    \
-    bioconductor-biocgenerics \
-    bioconductor-s4vectors \
-    bioconductor-iranges \
-    bioconductor-genomeinfodbdata \
-    bioconductor-genomeinfodb \
-    bioconductor-genomicranges \
-    bioconductor-biobase \
-    bioconductor-matrixgenerics \
-    bioconductor-delayedarray \
-    bioconductor-delayedmatrixstats \
-    bioconductor-hdf5array \
-    bioconductor-summarizedexperiment \
-    bioconductor-singlecellexperiment \
-    bioconductor-beachmat \
-    bioconductor-deseq2 \
-    bioconductor-glmgampoi
+    r-base=4.5.2 \
+    compilers \
+    make
 
-success "All packages installed via conda"
+success "Python + R 4.5.2 + compiler tools installed via conda"
 
 # ── Step 5: Verify R is present ──────────────────────────────
 if [ ! -f "$RSCRIPT_BIN" ]; then
@@ -149,29 +134,88 @@ info "Environment prefix : $CONDA_PREFIX"
 info "Python             : $($PYTHON_BIN --version)"
 info "R                  : $($RSCRIPT_BIN --version 2>&1 | head -1)"
 
-# ── Step 6: Verify R packages load ───────────────────────────
-info "Verifying R packages load correctly..."
+# ── Step 6: Install R packages via pak ───────────────────────
+# conda-forge does not have Bioconductor packages for R 4.5.2 yet
+# pak installs from source with full dependency resolution
+info "Installing R packages via pak (10-20 min first run)..."
+
+# explicitly add conda env bin to PATH so R subprocess finds gcc/g++
+export PATH="$CONDA_PREFIX/bin:$PATH"
+export CC="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc"
+export CXX="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++"
+export FC="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gfortran"
 
 $RSCRIPT_BIN - <<'REOF'
-options(warn = 1)
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# bootstrap pak using stable binary repo
+cat("==> Bootstrapping pak...
+")
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak",
+                   repos = "https://r-lib.github.io/p/pak/stable/",
+                   quiet = FALSE)
+}
+cat(sprintf("  pak version: %s
+", as.character(packageVersion("pak"))))
+
+# install all packages — pak resolves full dep tree automatically
+# including all transitive deps (glue, rlang, Rcpp, vctrs, cli, etc.)
+cat("==> Installing all R packages...
+")
+pak::pkg_install(
+  c(
+    "data.table",
+    "R.utils",
+    "BiocManager",
+    "bioc::BiocGenerics",
+    "bioc::S4Vectors",
+    "bioc::IRanges",
+    "bioc::GenomeInfoDb",
+    "bioc::GenomicRanges",
+    "bioc::Biobase",
+    "bioc::MatrixGenerics",
+    "bioc::DelayedArray",
+    "bioc::DelayedMatrixStats",
+    "bioc::HDF5Array",
+    "bioc::SummarizedExperiment",
+    "bioc::SingleCellExperiment",
+    "bioc::beachmat",
+    "bioc::DESeq2",
+    "bioc::glmGamPoi"
+  ),
+  ask     = FALSE,
+  upgrade = FALSE
+)
+
+# verify
+cat("
+==> Verifying all packages load correctly...
+")
 pkgs   <- c("DESeq2", "glmGamPoi", "data.table", "R.utils")
 failed <- c()
 for (pkg in pkgs) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
-    cat(sprintf("  FAIL  %s\n", pkg))
     failed <- c(failed, pkg)
+    cat(sprintf("  FAIL  %s
+", pkg))
   } else {
-    cat(sprintf("  OK    %-15s %s\n", pkg, as.character(packageVersion(pkg))))
+    cat(sprintf("  OK    %-15s %s
+", pkg, as.character(packageVersion(pkg))))
   }
 }
 if (length(failed) > 0) {
-  cat(sprintf("\nFailed to load: %s\n", paste(failed, collapse = ", ")))
+  cat(sprintf("
+Failed: %s
+", paste(failed, collapse = ", ")))
   quit(status = 1)
 }
-cat("\nAll R packages verified.\n")
+cat("
+All R packages installed and verified.
+")
 REOF
 
-success "R packages verified"
+success "R packages installed and verified"
 
 # ── Step 7: Verify Python imports ────────────────────────────
 info "Verifying Python imports..."
