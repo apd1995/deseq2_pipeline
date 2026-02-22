@@ -25,8 +25,7 @@ count_mat <- t(as.matrix(counts_dt[idx, ]))
 colnames(count_mat) <- paste0("s", seq_len(ncol(count_mat)))
 
 # DESeq2 requires integer counts — round and cast
-# pseudobulk sums from sparse float32 matrices can have tiny floating
-# point residuals (e.g. 4.9999999) so rounding before casting is essential
+# pseudobulk sums from sparse float32 matrices can have tiny floating point residuals (e.g. 4.9999999) so rounding before casting is essential
 if (!is.integer(count_mat)) {
   count_mat <- round(count_mat)
   storage.mode(count_mat) <- "integer"
