@@ -114,7 +114,7 @@ python deseq2_pipeline.py \
 
 | Parameter | Default | Notes |
 |---|---|---|
-| `--n-threads` | 4 | Pseudobulk parallelism. 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
+| `--n-threads` | 4 | Pseudobulk parallelism. From experiments, it seems that 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
 | `--n-workers-r` | 50 | Parallel R processes. Safe up to ~100 on a machine with 200GB RAM since adata is freed before R launches |
 | `--min-cells` | 10 | Perts with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
 | `--n-sample` | None | Subsample N random perts. Useful for quick tests before running all perts |
