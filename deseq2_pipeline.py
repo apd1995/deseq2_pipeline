@@ -559,7 +559,7 @@ def run_pipeline(
         ctrl_label:  Value in pert_col that identifies control cells
         outdir:      Parent output directory (default: "results")
         run_name:    Custom name appended to timestamp in output dir name.
-                     E.g. "dmso_set1" -> run_20260222_114321_dmso_set1/
+                     E.g. "tahoe" -> run_20260222_114321_tahoe/
                      If None, directory is just run_20260222_114321/
         n_threads:   Threads for pseudobulking (default: 4)
         n_workers_r: Parallel R processes per batch (default: 50)
@@ -670,7 +670,7 @@ if __name__ == "__main__":
                         help="Parent output directory")
     parser.add_argument("--run-name",    default=None,
                         help="Custom name for output folder, combined with timestamp. "
-                             "E.g. 'dmso_set1' creates run_20260222_114321_dmso_set1/")
+                             "E.g. 'tahoe' creates run_20260222_114321_tahoe/")
     parser.add_argument("--n-threads",   type=int,   default=4,
                         help="Threads for pseudobulking")
     parser.add_argument("--n-workers-r", type=int,   default=50,
