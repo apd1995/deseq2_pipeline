@@ -5,10 +5,17 @@ channels:
 
 dependencies:
   - python=3.11
-  - r-base=4.5.2      # R 4.5.2 matches ds_env for performance
+  - r-base=4.5.2      # R 4.5.2 — matches ds_env for performance
   - pip               # explicit pip dependency
 
-  # Python packages — all from conda-forge
+  # C compiler tools — needed for pak to build R packages from source
+  - compilers
+  - make
+  - libcurl
+  - openssl
+  - zlib
+
+  # Python packages
   - numpy>=1.24
   - pandas>=2.0
   - scipy>=1.10
