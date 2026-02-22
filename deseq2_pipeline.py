@@ -49,11 +49,15 @@ def _ram() -> str:
     return f"process: {proc.memory_info().rss/1e9:.1f}GB"
 
 
-def _make_run_dir(outdir: str, h5ad_path: str) -> str:
-    """Create a unique timestamped run directory to prevent overwrites."""
+def _make_run_dir(outdir: str, run_name: str = None) -> str:
+    """Create a unique timestamped run directory to prevent overwrites.
+    
+    If run_name is provided: run_20260222_114321_myname/
+    Otherwise:               run_20260222_114321/
+    """
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dataset   = Path(h5ad_path).stem[:20]
-    run_dir   = os.path.join(outdir, f"run_{timestamp}_{dataset}")
+    suffix    = f"_{run_name}" if run_name else ""
+    run_dir   = os.path.join(outdir, f"run_{timestamp}{suffix}")
     os.makedirs(os.path.join(run_dir, "chunks"), exist_ok=True)
     return run_dir
 
@@ -531,6 +535,7 @@ def run_pipeline(
     pert_col:    str,
     ctrl_label:  str,
     outdir:      str        = "results",
+    run_name:    str | None = None,
     n_threads:   int        = 4,
     n_workers_r: int        = 50,
     rep_frac:    float      = 0.5,
@@ -553,6 +558,9 @@ def run_pipeline(
         pert_col:    obs column containing perturbation labels
         ctrl_label:  Value in pert_col that identifies control cells
         outdir:      Parent output directory (default: "results")
+        run_name:    Custom name appended to timestamp in output dir name.
+                     E.g. "dmso_set1" -> run_20260222_114321_dmso_set1/
+                     If None, directory is just run_20260222_114321/
         n_threads:   Threads for pseudobulking (default: 4)
         n_workers_r: Parallel R processes per batch (default: 50)
         rep_frac:    Fraction of cells per replicate (default: 0.5)
@@ -573,11 +581,12 @@ def run_pipeline(
     os.environ["MKL_NUM_THREADS"]      = "1"
 
     t_start = time.time()
-    run_dir = _make_run_dir(outdir, h5ad_path)
+    run_dir = _make_run_dir(outdir, run_name)
     print(f"Run directory: {run_dir}", flush=True)
 
     _save_config(run_dir, dict(
         h5ad_path   = h5ad_path,
+        run_name    = run_name,
         pert_col    = pert_col,
         ctrl_label  = ctrl_label,
         n_threads   = n_threads,
@@ -659,6 +668,9 @@ if __name__ == "__main__":
                         help="Value in pert-col that identifies control cells")
     parser.add_argument("--outdir",      default="results",
                         help="Parent output directory")
+    parser.add_argument("--run-name",    default=None,
+                        help="Custom name for output folder, combined with timestamp. "
+                             "E.g. 'dmso_set1' creates run_20260222_114321_dmso_set1/")
     parser.add_argument("--n-threads",   type=int,   default=4,
                         help="Threads for pseudobulking")
     parser.add_argument("--n-workers-r", type=int,   default=50,
@@ -687,6 +699,7 @@ if __name__ == "__main__":
         pert_col    = args.pert_col,
         ctrl_label  = args.ctrl_label,
         outdir      = args.outdir,
+        run_name    = args.run_name,
         n_threads   = args.n_threads,
         n_workers_r = args.n_workers_r,
         rep_frac    = args.rep_frac,
