@@ -38,7 +38,8 @@ python deseq2_pipeline.py \
     --ctrl-label non-targeting \
     --outdir results \
     --n-threads 4 \
-    --n-workers-r 50
+    --n-workers-r 50 \
+    --run-name tahoe
 ```
 
 (Highly recommended!) Test on a subset first with additional `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time it takes to run, and then accordingly experiment with `n-threads` and `n-workers`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
@@ -56,6 +57,7 @@ results_path = run_pipeline(
     n_threads   = 4,
     n_workers_r = 50,
     n_sample    = 50,                 # omit or set None to run all perts
+    run_name    = "tahoe",
 )
 
 import pandas as pd
@@ -71,7 +73,7 @@ Each run creates a unique timestamped directory under `--outdir` so reruns never
 
 ```
 results/
-  run_20260221_143502_mydata/
+  run_20260221_143502_tahoe/
     run_config.json          # all parameters used
     pseudobulk.csv.gz        # pseudobulk count matrix
     deseq2_results.csv.gz    # final results
@@ -116,6 +118,7 @@ python deseq2_pipeline.py \
 
 | Parameter | Default | Notes |
 |---|---|---|
+| `--run-name` | None | Custom name for the output folder, combined with timestamp. E.g. `--run-name tahoe` creates `results/run_20260222_114321_tahoe/`. Useful when running multiple datasets with the same filename |
 | `--n-threads` | 4 | Pseudobulk parallelism. From experiments, it seems that 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
 | `--n-workers-r` | 50 | Parallel R processes. Safe up to ~100 on a machine with 200GB RAM since adata is freed before R launches |
 | `--min-cells` | 10 | Perts with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
