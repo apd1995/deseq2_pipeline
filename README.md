@@ -34,8 +34,8 @@ To speed things up, the main script employs parallelization, both across pseudob
 ```bash
 python deseq2_pipeline.py \
     --h5ad /path/to/data.h5ad \
-    --pert-col target_gene \
-    --ctrl-label non-targeting \
+    --pert-col target_gene \         # change to your perturbation column name
+    --ctrl-label non-targeting \     # change to your control label
     --outdir results \
     --n-threads 4 \
     --n-workers-r 50
@@ -50,8 +50,8 @@ from deseq2_pipeline import run_pipeline
 
 results_path = run_pipeline(
     h5ad_path   = "/path/to/data.h5ad",
-    pert_col    = "target_gene",
-    ctrl_label  = "non-targeting",
+    pert_col    = "target_gene",    # change to your perturbation column name
+    ctrl_label  = "non-targeting",  # change to your control label
     n_threads   = 4,
     n_workers_r = 50,
 )
