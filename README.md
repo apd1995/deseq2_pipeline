@@ -6,14 +6,12 @@ Pseudobulk + DESeq2 pipeline for single-cell perturbation screens. It takes an A
 
 ## Setup (only need to run once)
 
-Requires conda or mamba. No sudo needed. R and all dependencies install into the conda environment.
+Requires conda or mamba. No sudo needed. R and all dependencies will be automatically installed.
 
 ```bash
 bash setup.sh
 conda activate deseq2_pipeline
 ```
-
-This `setup.sh` installs Python 3.11, R 4.3, and all required packages (DESeq2, glmGamPoi, etc.) as pre-built conda binaries — no compilation.
 
 ---
 
