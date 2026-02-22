@@ -10,8 +10,8 @@ Usage (CLI):
         --ctrl-label non-targeting \\
         --outdir results \\
         --n-threads 4 \\
-        --n-workers-r 50 \\
-        --n-sample 100          # optional: subsample perts for testing
+        --n-workers-r 10 \\
+        --n-sample 50          # optional: subsample perts for testing
 
 Usage (Python API):
     from deseq2_pipeline import run_pipeline
@@ -21,7 +21,7 @@ Usage (Python API):
         pert_col    = "target_gene",
         ctrl_label  = "non-targeting",
         n_threads   = 4,
-        n_workers_r = 50,
+        n_workers_r = 10,
     )
 """
 
@@ -49,11 +49,11 @@ def _ram() -> str:
     return f"process: {proc.memory_info().rss/1e9:.1f}GB"
 
 
-def _make_run_dir(outdir: str, h5ad_path: str) -> str:
-    """Create a unique timestamped run directory to prevent overwrites."""
+def _make_run_dir(outdir: str, run_name: str = None) -> str:
+    """Create the run directory with timestamp followed by user-specified name (optional)."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dataset   = Path(h5ad_path).stem[:20]
-    run_dir   = os.path.join(outdir, f"run_{timestamp}_{dataset}")
+    suffix    = run_name if run_name else "run"
+    run_dir   = os.path.join(outdir, f"run_{timestamp}_{suffix}")
     os.makedirs(os.path.join(run_dir, "chunks"), exist_ok=True)
     return run_dir
 
