@@ -34,14 +34,14 @@ To speed things up, the main script employs parallelization, both across pseudob
 ```bash
 python deseq2_pipeline.py \
     --h5ad /path/to/data.h5ad \
-    --pert-col target_gene \         # change to your perturbation column name
-    --ctrl-label non-targeting \     # change to your control label
+    --pert-col target_gene \
+    --ctrl-label non-targeting \
     --outdir results \
     --n-threads 4 \
     --n-workers-r 50
 ```
 
-Test on a subset first with `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time, and then accordingly experiment with `n-threads` and `n-workers`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
+(Highly recommended!) Test on a subset first with additional `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time it takes to run, and then accordingly experiment with `n-threads` and `n-workers`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
 
 ### Python API
 
@@ -50,15 +50,17 @@ from deseq2_pipeline import run_pipeline
 
 results_path = run_pipeline(
     h5ad_path   = "/path/to/data.h5ad",
-    pert_col    = "target_gene",    # change to your perturbation column name
-    ctrl_label  = "non-targeting",  # change to your control label
+    pert_col    = "target_gene",      # your perturbation column name
+    ctrl_label  = "non-targeting",    # your control label
+    outdir      = "results",
     n_threads   = 4,
     n_workers_r = 50,
+    n_sample    = 50,                 # omit or set None to run all perts
 )
 
-# Optional: if you want to see the results
 import pandas as pd
 results = pd.read_csv(results_path)
+print(results.head())
 ```
 
 ---
