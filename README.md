@@ -40,7 +40,7 @@ python deseq2_pipeline.py \
     --run-name tahoe
 ```
 
-(Highly recommended!) Test on a subset first with additional `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time it takes to run, and then accordingly experiment with `n-threads` and `n-workers`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
+(Highly recommended!) Test on a subset first with additional `--n-sample 50`. This would take a random sample of 50 perturbations and return results on that. Note the time it takes to run, and then accordingly experiment with `n-threads` and `n-workers-r`. `n-threads` decides the number of threads for pseudobulking (in Python), while `n-workers-r` decides parallelization in R for actual DESeq2 implementation.
 
 ### Python API
 
