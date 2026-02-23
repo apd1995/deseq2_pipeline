@@ -117,9 +117,9 @@ python deseq2_pipeline.py \
 | Parameter | Default | Notes |
 |---|---|---|
 | `--run-name` | None | Custom name for the output folder, combined with timestamp. E.g. `--run-name tahoe` creates `results/run_20260222_114321_tahoe/`. Useful when running multiple datasets with the same filename |
-| `--n-threads` | 4 | Pseudobulk parallelism. From experiments, it seems that 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
-| `--n-workers-r` | 50 | Parallel R processes. Safe up to ~100 on a machine with 200GB RAM since adata is freed before R launches |
-| `--min-cells` | 10 | Perturbations with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
+| `--n-threads` | 8 | Pseudobulk parallelism. From experiments, it seems that 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
+| `--n-workers-r` | 50 | Parallel R processes. |
+| `--min-cells` | 2 | Perturbations with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
 | `--n-sample` | None | Subsample N random perturbations. Useful for quick tests before running everything |
 | `--random-seed` | 42 | Controls pseudobulk cell sampling. Fix this to reproduce results exactly |
 | `--chunk-size` | 500 | Rows per chunk in sparse row sum. Keep at 500 — lower values avoid RSS spikes on systems with tight memory limits |
