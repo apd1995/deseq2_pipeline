@@ -2,10 +2,18 @@
 # setup.sh
 #
 # Fully automated setup for deseq2_pipeline on HPC SLURM clusters.
-# No sudo required. Installs R + all Python and R dependencies via conda.
+# No sudo required. Installs R 4.5.2 + all dependencies via conda + pak.
 #
 # Usage:
 #   bash setup.sh
+#
+# What it does:
+#   1. Finds conda/mamba
+#   2. Creates or updates the conda environment
+#   3. Installs Python 3.11 + R 4.5.2 + compiler tools via conda
+#   4. Installs R packages (DESeq2, glmGamPoi, data.table) via pak inside R
+#   5. Verifies everything works
+#   6. Prints a ready-to-use SLURM job template
 
 set -euo pipefail
 
@@ -65,13 +73,12 @@ fi
 ENV_NAME="deseq2_pipeline"
 info "Setting up conda environment: $ENV_NAME..."
 
-# get prefix helper
 get_prefix() {
     conda env list | grep "^${ENV_NAME} " | awk '{print $NF}'
 }
 
 if conda env list | grep -q "^${ENV_NAME} "; then
-    warn "Environment '$ENV_NAME' already exists — will install any missing packages"
+    warn "Environment '$ENV_NAME' already exists — checking for missing packages..."
 else
     info "Creating new environment '$ENV_NAME'..."
     $CONDA_CMD create -n "$ENV_NAME" \
@@ -88,25 +95,19 @@ CONDA_PREFIX=$(get_prefix)
 PYTHON_BIN="$CONDA_PREFIX/bin/python"
 RSCRIPT_BIN="$CONDA_PREFIX/bin/Rscript"
 
-# ── Step 3: Clean conda cache to avoid corrupted package errors ──
-# Corrupted cached packages (wrong size checksum) cause SafetyError.
-# Cleaning before install ensures fresh downloads.
+# ── Step 3: Clean conda cache ────────────────────────────────
 info "Cleaning conda package cache..."
 $CONDA_CMD clean --packages --tarballs -y
 success "Conda cache cleaned"
 
-# ── Step 4: Install ALL packages via conda (no compilation) ──
-# Using conda r-* and bioconductor-* packages means pre-built binaries
-# — no C compiler needed, no source compilation, no pak, no glue errors.
-info "Installing Python + R + all R packages via conda (pre-built binaries)..."
-info "This avoids all compilation issues. May take 10-20 min on first run..."
+# ── Step 4: Install all conda packages ───────────────────────
+info "Installing Python + R 4.5.2 + compiler tools via conda..."
+info "This may take 10-20 min on first run..."
 
 $CONDA_CMD install -n "$ENV_NAME" \
     -c conda-forge \
-    -c bioconda \
     --no-update-deps \
     -y \
-    \
     python=3.11 \
     pip \
     numpy \
@@ -116,29 +117,14 @@ $CONDA_CMD install -n "$ENV_NAME" \
     h5py \
     psutil \
     pytest \
-    \
-    r-base=4.3 \
-    r-data.table \
-    r-r.utils \
-    \
-    bioconductor-biocgenerics \
-    bioconductor-s4vectors \
-    bioconductor-iranges \
-    bioconductor-genomeinfodbdata \
-    bioconductor-genomeinfodb \
-    bioconductor-genomicranges \
-    bioconductor-biobase \
-    bioconductor-matrixgenerics \
-    bioconductor-delayedarray \
-    bioconductor-delayedmatrixstats \
-    bioconductor-hdf5array \
-    bioconductor-summarizedexperiment \
-    bioconductor-singlecellexperiment \
-    bioconductor-beachmat \
-    bioconductor-deseq2 \
-    bioconductor-glmgampoi
+    r-base=4.5.2 \
+    compilers \
+    make \
+    libcurl \
+    openssl \
+    zlib
 
-success "All packages installed via conda"
+success "Python + R 4.5.2 + compiler tools installed"
 
 # ── Step 5: Verify R is present ──────────────────────────────
 if [ ! -f "$RSCRIPT_BIN" ]; then
@@ -149,33 +135,67 @@ info "Environment prefix : $CONDA_PREFIX"
 info "Python             : $($PYTHON_BIN --version)"
 info "R                  : $($RSCRIPT_BIN --version 2>&1 | head -1)"
 
-# ── Step 6: Verify R packages load ───────────────────────────
-info "Verifying R packages load correctly..."
+# ── Step 6: Install R packages via pak ───────────────────────
+# conda-forge does not have Bioconductor packages for R 4.5.2 yet
+# pak installs from source with full dependency resolution
+# minimal list — only what deseq2_worker.R actually needs
+info "Installing R packages via pak (10-20 min first run)..."
+
+# explicitly set compiler paths so pak subprocess can find gcc/g++
+export PATH="$CONDA_PREFIX/bin:$PATH"
+export CC="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gcc"
+export CXX="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-g++"
+export FC="$CONDA_PREFIX/bin/x86_64-conda-linux-gnu-gfortran"
 
 $RSCRIPT_BIN - <<'REOF'
-options(warn = 1)
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+
+# bootstrap pak using stable binary repo
+cat("==> Bootstrapping pak...\n")
+if (!requireNamespace("pak", quietly = TRUE)) {
+  install.packages("pak",
+                   repos = "https://r-lib.github.io/p/pak/stable/",
+                   quiet = FALSE)
+}
+cat(sprintf("  pak version: %s\n", as.character(packageVersion("pak"))))
+
+# install minimal set — pak resolves all true transitive dependencies
+# (DESeq2 requires SummarizedExperiment, HDF5Array etc — all handled automatically)
+cat("==> Installing DESeq2, glmGamPoi, data.table, R.utils...\n")
+pak::pkg_install(
+  c(
+    "data.table",
+    "R.utils",
+    "bioc::DESeq2",
+    "bioc::glmGamPoi"
+  ),
+  ask     = FALSE,
+  upgrade = FALSE
+)
+
+# verify all four packages load
+cat("\n==> Verifying packages load correctly...\n")
 pkgs   <- c("DESeq2", "glmGamPoi", "data.table", "R.utils")
 failed <- c()
 for (pkg in pkgs) {
   if (!requireNamespace(pkg, quietly = TRUE)) {
-    cat(sprintf("  FAIL  %s\n", pkg))
     failed <- c(failed, pkg)
+    cat(sprintf("  FAIL  %s\n", pkg))
   } else {
     cat(sprintf("  OK    %-15s %s\n", pkg, as.character(packageVersion(pkg))))
   }
 }
 if (length(failed) > 0) {
-  cat(sprintf("\nFailed to load: %s\n", paste(failed, collapse = ", ")))
+  cat(sprintf("\nFailed: %s\n", paste(failed, collapse = ", ")))
   quit(status = 1)
 }
-cat("\nAll R packages verified.\n")
+cat("\nAll R packages installed and verified.\n")
 REOF
 
-success "R packages verified"
+success "R packages installed and verified"
 
 # ── Step 7: Verify Python imports ────────────────────────────
 info "Verifying Python imports..."
-
 $PYTHON_BIN - <<'PYEOF'
 import importlib, sys
 pkgs   = ["numpy", "pandas", "scipy", "anndata", "h5py", "psutil"]
@@ -198,7 +218,6 @@ success "Python imports verified"
 
 # ── Step 8: Verify Rscript callable from Python ──────────────
 info "Verifying Rscript callable from Python subprocess..."
-
 $PYTHON_BIN - <<PYEOF
 import subprocess, sys
 result = subprocess.run(
@@ -242,22 +261,17 @@ cat << SLURMEOF
 
 #!/bin/bash
 #SBATCH --job-name=deseq2_pipeline
-#SBATCH --mem=300G
-#SBATCH --cpus-per-task=8
+#SBATCH --mem=200G
+#SBATCH --cpus-per-task=20
 #SBATCH --time=04:00:00
 #SBATCH --output=logs/%j.out
 #SBATCH --error=logs/%j.err
 
+mkdir -p logs
 source \$(conda info --base)/etc/profile.d/conda.sh
 conda activate $ENV_NAME
 
-python deseq2_pipeline.py \\
-    --h5ad /path/to/data.h5ad \\
-    --pert-col target_gene \\
-    --ctrl-label non-targeting \\
-    --outdir results \\
-    --n-threads 8 \\
-    --n-workers-r 50
+python run_analysis.py
 
 SLURMEOF
 echo "Run with: sbatch submit_job.sh"

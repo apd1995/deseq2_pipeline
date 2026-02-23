@@ -1,15 +1,21 @@
 name: deseq2_pipeline
 channels:
   - conda-forge
-  - bioconda
   - defaults
 
 dependencies:
   - python=3.11
-  - r-base=4.3
+  - r-base=4.5.2
   - pip
 
-  # Python packages — all from conda-forge
+  # C compiler tools — needed for pak to build R packages from source
+  - compilers
+  - make
+  - libcurl
+  - openssl
+  - zlib
+
+  # Python packages
   - numpy>=1.24
   - pandas>=2.0
   - scipy>=1.10
@@ -17,3 +23,5 @@ dependencies:
   - h5py>=3.8
   - psutil>=5.9
   - pytest>=7.4
+
+# Note: R packages (DESeq2, glmGamPoi, data.table, R.utils) are installed directly inside R via pak (see setup.sh) since conda-forge does not yet have Bioconductor packages compatible with R 4.5.2

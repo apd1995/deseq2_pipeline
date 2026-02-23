@@ -6,14 +6,12 @@ Pseudobulk + DESeq2 pipeline for single-cell perturbation screens. It takes an A
 
 ## Setup (only need to run once)
 
-Requires conda or mamba. No sudo needed. R and all dependencies install into the conda environment.
+Requires conda or mamba. No sudo needed. R and all dependencies will be automatically installed.
 
 ```bash
 bash setup.sh
 conda activate deseq2_pipeline
 ```
-
-This `setup.sh` installs Python 3.11, R 4.3, and all required packages (DESeq2, glmGamPoi, etc.) as pre-built conda binaries — no compilation.
 
 ---
 
@@ -121,9 +119,9 @@ python deseq2_pipeline.py \
 | `--run-name` | None | Custom name for the output folder, combined with timestamp. E.g. `--run-name tahoe` creates `results/run_20260222_114321_tahoe/`. Useful when running multiple datasets with the same filename |
 | `--n-threads` | 4 | Pseudobulk parallelism. From experiments, it seems that 4 is the sweet spot — beyond 4 threads scipy sparse hits the GIL and gains plateau |
 | `--n-workers-r` | 50 | Parallel R processes. Safe up to ~100 on a machine with 200GB RAM since adata is freed before R launches |
-| `--min-cells` | 10 | Perts with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
-| `--n-sample` | None | Subsample N random perts. Useful for quick tests before running all perts |
+| `--min-cells` | 10 | Perturbations with fewer cells than this are skipped. Names of such skipped perturbations are logged to `skipped_perts.csv` |
+| `--n-sample` | None | Subsample N random perturbations. Useful for quick tests before running everything |
 | `--random-seed` | 42 | Controls pseudobulk cell sampling. Fix this to reproduce results exactly |
 | `--chunk-size` | 500 | Rows per chunk in sparse row sum. Keep at 500 — lower values avoid RSS spikes on systems with tight memory limits |
-| `--n-reps` | 2 | Number of pseudobulk replicates per perturbation. Each replicate uses `rep-frac` of the pert's cells. Total cells used = `n-reps * rep-frac`|
-| `--rep-frac` | 0.5 | Fraction of each pert's cells used per replicate. Default 0.5 means each replicate uses 50% of cells. Must satisfy `n-reps * rep-frac ≤ 1.0` — e.g. 3 replicates requires `rep-frac ≤ 0.33` |
+| `--n-reps` | 2 | Number of pseudobulk replicates per perturbation. Each replicate uses `rep-frac` of the perturbation's cells. Total cells used = `n-reps * rep-frac`|
+| `--rep-frac` | 0.5 | Fraction of each perturbation's cells used per replicate. Default 0.5 means each replicate uses 50% of cells. Must satisfy `n-reps * rep-frac ≤ 1.0` — e.g. 3 replicates requires `rep-frac ≤ 0.33` |
