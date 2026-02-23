@@ -35,7 +35,7 @@ python deseq2_pipeline.py \
     --pert-col target_gene \
     --ctrl-label non-targeting \
     --outdir results \
-    --n-threads 4 \
+    --n-threads 8 \
     --n-workers-r 50 \
     --run-name tahoe
 ```
@@ -52,7 +52,7 @@ results_path = run_pipeline(
     pert_col    = "target_gene",      # your perturbation column name
     ctrl_label  = "non-targeting",    # your control label
     outdir      = "results",
-    n_threads   = 4,
+    n_threads   = 8,
     n_workers_r = 50,
     n_sample    = 50,                 # omit or set None to run all perts
     run_name    = "tahoe",
@@ -107,7 +107,7 @@ python deseq2_pipeline.py \
     --pert-col target_gene \
     --ctrl-label non-targeting \
     --random-seed 42          # must match original run
-    --n-sample 100            # must match original run
+    --n-sample 50            # must match original run
 ```
 
 ---
