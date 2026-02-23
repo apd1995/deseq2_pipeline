@@ -9,9 +9,9 @@ Usage (CLI):
         --pert-col target_gene \\
         --ctrl-label non-targeting \\
         --outdir results \\
-        --n-threads 4 \\
+        --n-threads 8 \\
         --n-workers-r 50 \\
-        --n-sample 100          # optional: subsample perts for testing
+        --n-sample 50          # optional: subsample perts for testing
 
 Usage (Python API):
     from deseq2_pipeline import run_pipeline
@@ -20,8 +20,9 @@ Usage (Python API):
         h5ad_path   = "/path/to/data.h5ad",
         pert_col    = "target_gene",
         ctrl_label  = "non-targeting",
-        n_threads   = 4,
+        n_threads   = 8,
         n_workers_r = 50,
+        n_sample    = 50
     )
 """
 
@@ -536,11 +537,11 @@ def run_pipeline(
     ctrl_label:  str,
     outdir:      str        = "results",
     run_name:    str | None = None,
-    n_threads:   int        = 4,
+    n_threads:   int        = 8,
     n_workers_r: int        = 50,
     rep_frac:    float      = 0.5,
     n_reps:      int        = 2,
-    min_cells:   int        = 10,
+    min_cells:   int        = 2,
     n_sample:    int | None = None,
     random_seed: int        = 42,
     chunk_size:  int        = 500,
@@ -561,11 +562,11 @@ def run_pipeline(
         run_name:    Custom name appended to timestamp in output dir name.
                      E.g. "tahoe" -> run_20260222_114321_tahoe/
                      If None, directory is just run_20260222_114321/
-        n_threads:   Threads for pseudobulking (default: 4)
+        n_threads:   Threads for pseudobulking (default: 8)
         n_workers_r: Parallel R processes per batch (default: 50)
         rep_frac:    Fraction of cells per replicate (default: 0.5)
         n_reps:      Number of replicates (default: 2)
-        min_cells:   Minimum cells for a pert to be included (default: 10)
+        min_cells:   Minimum cells for a pert to be included (default: 2)
         n_sample:    Subsample N random perts; None = run all (default: None)
         random_seed: Random seed for reproducibility (default: 42)
         chunk_size:  Rows per chunk in sparse_row_sum (default: 500)
@@ -671,7 +672,7 @@ if __name__ == "__main__":
     parser.add_argument("--run-name",    default=None,
                         help="Custom name for output folder, combined with timestamp. "
                              "E.g. 'tahoe' creates run_20260222_114321_tahoe/")
-    parser.add_argument("--n-threads",   type=int,   default=4,
+    parser.add_argument("--n-threads",   type=int,   default=8,
                         help="Threads for pseudobulking")
     parser.add_argument("--n-workers-r", type=int,   default=50,
                         help="Parallel R processes per batch")
@@ -679,7 +680,7 @@ if __name__ == "__main__":
                         help="Fraction of cells per replicate")
     parser.add_argument("--n-reps",      type=int,   default=2,
                         help="Number of replicates")
-    parser.add_argument("--min-cells",   type=int,   default=10,
+    parser.add_argument("--min-cells",   type=int,   default=2,
                         help="Min cells per pert to be included")
     parser.add_argument("--n-sample",    type=int,   default=None,
                         help="Subsample N perts (default: run all)")
