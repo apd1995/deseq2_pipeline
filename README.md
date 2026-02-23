@@ -124,4 +124,4 @@ python deseq2_pipeline.py \
 | `--random-seed` | 42 | Controls pseudobulk cell sampling. Fix this to reproduce results exactly |
 | `--chunk-size` | 500 | Rows per chunk in sparse row sum. Keep at 500 — lower values avoid RSS spikes on systems with tight memory limits |
 | `--n-reps` | 2 | Number of pseudobulk replicates per perturbation. Each replicate uses `rep-frac` of the perturbation's cells. Total cells used = `n-reps * rep-frac`|
-| `--rep-frac` | 0.5 | Fraction of each perturbation's cells used per replicate. Default 0.5 means each replicate uses 50% of cells. Must satisfy `n-reps * rep-frac ≤ 1.0` — e.g. 3 replicates requires `rep-frac ≤ 0.33` |
+| `--rep-frac` | 0.5 | Fraction of each perturbation's cells used per replicate. Default 0.5 means each replicate uses 50% of cells. |
