@@ -130,7 +130,7 @@ def build_group_structure(
     for p in unique_perts:
         if p == ctrl_label:
             continue
-        n        = int(value_counts[p])
+        n = int(value_counts[p])
         rep_size = int(n * rep_frac)
         if n < min_cells:
             skipped[p] = f"only {n} cells (< min_cells={min_cells})"
@@ -207,12 +207,11 @@ def draw_cell_assignments(
     assignments = {}
     for pert in pert_names:
         pert_idx    = np.where(pert_col_v == pert)[0]
-        ctrl_sample = np.random.choice(
-            ctrl_idx, cells_per_ctrl_rep * n_reps, replace=False
-        )
+        pert_sample = np.random.permutation(pert_idx)
+        ctrl_sample = np.random.permutation(ctrl_idx)
         reps = []
         for rep in range(n_reps):
-            p_idx = pert_idx[
+            p_idx = pert_sample[
                 rep * pert_rep_sizes[pert] : (rep + 1) * pert_rep_sizes[pert]
             ]
             c_idx = ctrl_sample[
