@@ -1,3 +1,5 @@
+# Under active testing! (Use with caution)
+
 # DESeq2 Pipeline
 
 Pseudobulk + DESeq2 pipeline for single-cell perturbation screens. It takes an AnnData (with raw counts, not log-transformed), splits cells into a user-specified number of pseudobulk replicates per perturbation, runs DESeq2 against control, and returns differential expression results.
